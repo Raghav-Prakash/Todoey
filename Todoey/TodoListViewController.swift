@@ -10,11 +10,19 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 	
-	var itemArray = ["Do the groceries","Take out trash","Cook dinner"]
+	var itemArray = ["Shop for groceries","Take out trash","Cook dinner"]
+	
+	// For persistant local storage (items should be available even after app termination and relaunch)
+	let defaults = UserDefaults()
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		// Do any additional setup after loading the view, typically from a nib.
+		
+		// When app view gets loaded, load in the saved data in user defaults
+		if let items = defaults.value(forKey: "ToDoItemsArray") as? [String] {
+			itemArray = items
+		}
 	}
 	
 	//MARK - TableView DataSource methods
@@ -42,6 +50,8 @@ class TodoListViewController: UITableViewController {
 		
 		tableView.deselectRow(at: indexPath, animated: true)
 	}
+	
+	//MARK - Add new To-Do item
 
 	@IBAction func addBarButtonPressed(_ sender: UIBarButtonItem) {
 		
@@ -59,6 +69,8 @@ class TodoListViewController: UITableViewController {
 				
 				self.itemArray.append(item)
 				self.tableView.reloadData()
+				
+				self.defaults.set(self.itemArray, forKey: "ToDoItemsArray")
 			}
 		}
 		alert.addAction(action)
