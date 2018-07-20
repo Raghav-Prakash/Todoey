@@ -11,24 +11,17 @@ import UIKit
 class TodoListViewController: UITableViewController {
 	
 	var itemArray = [Item]()
+	let filePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
 	
-	// For persistant local storage (items should be available even after app termination and relaunch)
-	let defaults = UserDefaults.standard
-
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		// Do any additional setup after loading the view, typically from a nib.
 		
-		// Set initial to-do list items
-		setItem(item: "Shop for groceries")
-		setItem(item: "Mow the lawn")
-		setItem(item: "Take out trash")
-		
-		// When app view gets loaded, load in the saved data in user defaults
-		if let data = defaults.array(forKey: "ToDoItemsArray") as? [Item] {
-			itemArray = data
-		}
+		// Load the initial items from the items.plist file
+		loadItems()
 	}
+	
+	//MARK - Model manipulation functions
 	
 	func setItem(item: String) {
 		let newItem = Item()
@@ -37,6 +30,29 @@ class TodoListViewController: UITableViewController {
 		newItem.done = false
 		
 		itemArray.append(newItem)
+	}
+	
+	func saveItems() {
+		let encoder = PropertyListEncoder()
+		do {
+			let plist = try encoder.encode(itemArray)
+			try plist.write(to: filePath!)
+		} catch {
+			print("Error in ecoding: \(error)")
+		}
+		
+		tableView.reloadData()
+	}
+	
+	func loadItems() {
+		do {
+			let data = try Data(contentsOf: filePath!)
+			
+			let decoder = PropertyListDecoder()
+			itemArray = try decoder.decode([Item].self, from: data)
+		} catch {
+			print("Error in decoding: \(error)")
+		}
 	}
 	
 	//MARK - TableView DataSource methods
@@ -59,7 +75,7 @@ class TodoListViewController: UITableViewController {
 	
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 		itemArray[indexPath.row].done = !(itemArray[indexPath.row].done)
-		tableView.reloadData()
+		saveItems()
 		
 		tableView.deselectRow(at: indexPath, animated: true)
 	}
@@ -79,9 +95,7 @@ class TodoListViewController: UITableViewController {
 			// Add item to array
 			if let itemTitle = textField.text {
 				self.setItem(item: itemTitle)
-				self.tableView.reloadData()
-				
-				self.defaults.set(self.itemArray, forKey: "ToDoItemsArray")
+				self.saveItems()
 			}
 		}
 		alert.addAction(action)
