@@ -7,9 +7,11 @@
 //
 
 import UIKit
-import RealmSwift
 
-class CategoryViewController: UITableViewController {
+import RealmSwift
+import ChameleonFramework
+
+class CategoryViewController: SwipeTableViewController {
 	
 	let realm = try! Realm()
 	var categories : Results<Category>?
@@ -17,10 +19,14 @@ class CategoryViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 		
-		print(Realm.Configuration.defaultConfiguration.fileURL!)
-		
 		// Load initial categories from the database
 		loadCategories()
+		
+		// Adjust height of tableViewCell to accomodate SwipeCell image dimension
+		tableView.rowHeight = 80.0
+		
+		// Remove separator lines in tableView
+		tableView.separatorStyle = .none
     }
 	
 	//MARK: - Data manipulation methods
@@ -29,6 +35,7 @@ class CategoryViewController: UITableViewController {
 		let category = Category()
 		
 		category.name = name
+		category.backgroundHexColor = UIColor.randomFlat.hexValue()
 		
 		save(category: category)
 		tableView.reloadData()
@@ -51,6 +58,21 @@ class CategoryViewController: UITableViewController {
 		tableView.reloadData()
 	}
 	
+	//MARK: - Delete category
+	
+	override func deleteCell(at indexPath: IndexPath) {
+		let categoryDeleted = self.categories?[indexPath.row] ?? nil
+		if let category = categoryDeleted {
+			do {
+				try self.realm.write {
+					self.realm.delete(category)
+				}
+			} catch {
+				print("Error in deleting category: \(error)")
+			}
+		}
+	}
+	
 	//MARK: - TableView DataSource methods
 	
 	override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -58,10 +80,13 @@ class CategoryViewController: UITableViewController {
 	}
 	override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 		
-		let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+		let cell = super.tableView(tableView, cellForRowAt: indexPath)
 		
 		let category = categories?[indexPath.row] ?? nil
 		cell.textLabel?.text = category?.name ?? ""
+		
+		cell.backgroundColor = HexColor((category?.backgroundHexColor)!) ?? UIColor.white
+		cell.textLabel?.textColor = ContrastColorOf(cell.backgroundColor!, returnFlat: true)
 		
 		return cell
 	}
@@ -94,7 +119,9 @@ class CategoryViewController: UITableViewController {
 		}
 		alert.addAction(action)
 		
+		let cancel = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+		alert.addAction(cancel)
+		
 		present(alert, animated: true, completion: nil)
 	}
-	
 }
